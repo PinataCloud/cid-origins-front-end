@@ -288,7 +288,6 @@
         const [fileFilter, setFileFilter] = useState('all');
         const [sortOrder, setSortOrder] = useState('newest');
         const [error, setError] = useState(null);
-        const [copyMessage, setCopyMessage] = useState(null);
         const [showSignInModal, setShowSignInModal] = useState(false);
         const [inputMode, setInputMode] = useState('upload'); // 'upload' or 'cid'
         const [cidInput, setCidInput] = useState('');
@@ -302,6 +301,7 @@
             setPinataApiKey(savedApiKey);
             setIsLoggedIn(true);
           }
+          // Don't automatically show modal - let user decide
 
           const savedFiles = localStorage.getItem('uploaded_files');
           if (savedFiles) {
@@ -364,8 +364,8 @@
             setCids(cidPair);
             setIsGenerating(false);
             
-            // Upload to Pinata if logged in and has real API key
-            if (isLoggedIn && pinataApiKey && pinataApiKey !== 'SKIPPED') {
+            // Upload to Pinata if logged in
+            if (isLoggedIn && pinataApiKey) {
               setIsUploading(true);
               try {
                 const pinataCid = await uploadToPinata(file, pinataApiKey);
@@ -585,6 +585,7 @@
 
         // Handle CID input submission
         const handleCidSubmit = () => {
+          console.log('CID submit clicked, cidInput:', cidInput);
           if (!cidInput.trim()) {
             setError('Please enter a valid CID');
             return;
@@ -596,6 +597,8 @@
             setError('Please enter a valid CID (should start with Qm, bafybei, or bafkrei)');
             return;
           }
+
+          console.log('Valid CID detected, processing:', cid);
 
           // Create mock file object for CID
           const mockFile = {
@@ -612,6 +615,7 @@
             v1: cid.startsWith('bafybei') || cid.startsWith('bafkrei') ? cid : `bafybei${cid.slice(2)}`  // Convert to v1 format
           };
           
+          console.log('Setting CID data:', cidData);
           setCids(cidData);
           lookupHistory(cidData);
         };
@@ -700,11 +704,11 @@
                 </button>
                 <button
                   onClick={() => {
+                    console.log('Skip button clicked');
                     setShowSignInModal(false);
                     setApiKeyInput('');
-                    setIsLoggedIn(true); // Set to logged in but without API key
-                    setPinataApiKey('SKIPPED'); // Use a special value to indicate skipped
-                    setCopyMessage('You can upload files without Pinata - they will only generate CIDs locally.');
+                    setIsLoggedIn(false); // Make sure we're not logged in
+                    setCopyMessage('You can use VERICID without Pinata - files will generate CIDs locally.');
                   }}
                   className={`px-4 py-2 border rounded font-medium text-blue-600 border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900`}
                 >
@@ -757,7 +761,7 @@
                 </div>
                 
                 <div className="hidden md:flex items-center gap-6">
-                  {isLoggedIn && pinataApiKey ? (
+                  {isLoggedIn ? (
                     <>
                       <button
                         onClick={() => {
@@ -768,7 +772,7 @@
                         className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${showDashboard ? (darkMode ? 'bg-zinc-800 text-white' : 'bg-zinc-200 text-black') : (darkMode ? 'hover:bg-zinc-900' : 'hover:bg-zinc-100')}`}
                       >
                         <Icons.Dashboard className="w-4 h-4" />
-                        Dashboard {showDashboard && '(Active)'} {pinataApiKey === 'SKIPPED' && '(Local Mode)'}
+                        Dashboard {showDashboard && '(Active)'}
                       </button>
                       <button 
                         onClick={() => {
@@ -816,13 +820,13 @@
               isLoggedIn: {isLoggedIn.toString()}<br/>
               showDashboard: {showDashboard.toString()}<br/>
               showSettings: {showSettings.toString()}<br/>
+              pinataApiKey: {pinataApiKey ? 'SET' : 'EMPTY'}<br/>
               showSignInModal: {showSignInModal.toString()}<br/>
-              inputMode: {inputMode}<br/>
-              pinataApiKey: {pinataApiKey ? 'SET' : 'EMPTY'}
+              inputMode: {inputMode}
             </div>
 
             {/* Dashboard */}
-            {showDashboard && isLoggedIn && pinataApiKey && (
+            {showDashboard && isLoggedIn && (
               <div className="max-w-6xl mx-auto px-6 py-16 fade-in">
                 <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
                 <div className={`rounded-lg border p-6 ${darkMode ? 'bg-zinc-950 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
@@ -849,7 +853,7 @@
             )}
 
             {/* Settings */}
-            {showSettings && isLoggedIn && pinataApiKey && (
+            {showSettings && isLoggedIn && (
               <div className="max-w-6xl mx-auto px-6 py-16 fade-in">
                 <h2 className="text-2xl font-bold mb-6">Settings</h2>
                 <div className={`rounded-lg border p-6 ${darkMode ? 'bg-zinc-950 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
@@ -937,7 +941,7 @@
                               : (darkMode ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-black')
                           }`}
                         >
-                          Upload File
+                          Upload File {inputMode === 'upload' && '(Active)'}
                         </button>
                         <button
                           onClick={() => {
@@ -950,7 +954,7 @@
                               : (darkMode ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-black')
                           }`}
                         >
-                          Enter CID
+                          Enter CID {inputMode === 'cid' && '(Active)'}
                         </button>
                       </div>
                     </div>
@@ -1013,11 +1017,15 @@
                             <input
                               type="text"
                               value={cidInput}
-                              onChange={(e) => setCidInput(e.target.value)}
+                              onChange={(e) => {
+                                console.log('CID input changed:', e.target.value);
+                                setCidInput(e.target.value);
+                              }}
                               placeholder="Qm... or bafybei... or bafkrei..."
                               className={`w-full p-4 rounded border font-mono text-sm ${darkMode ? 'bg-black border-zinc-700 text-white placeholder-zinc-500' : 'bg-white border-zinc-300 text-black placeholder-zinc-400'}`}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
+                                  console.log('Enter key pressed in CID input');
                                   handleCidSubmit();
                                 }
                               }}
@@ -1025,7 +1033,10 @@
                           </div>
                           
                           <button
-                            onClick={handleCidSubmit}
+                            onClick={() => {
+                              console.log('Verify CID button clicked');
+                              handleCidSubmit();
+                            }}
                             disabled={!cidInput.trim()}
                             className={`w-full px-6 py-3 rounded font-medium transition-colors ${
                               cidInput.trim()
