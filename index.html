@@ -288,7 +288,9 @@
         const [fileFilter, setFileFilter] = useState('all');
         const [sortOrder, setSortOrder] = useState('newest');
         const [error, setError] = useState(null);
-        const [copyMessage, setCopyMessage] = useState(null);
+        const [showSignInModal, setShowSignInModal] = useState(false);
+        const [inputMode, setInputMode] = useState('upload'); // 'upload' or 'cid'
+        const [cidInput, setCidInput] = useState('');
         
         const fileInputRef = useRef(null);
 
@@ -356,7 +358,7 @@
             const cidPair = {
               v0: cidV0.toString(),
               v1: cidV1.toString()
-            };
+            const formatTimeAgo = (timestamp) => {
             
             setCids(cidPair);
             setIsGenerating(false);
@@ -557,6 +559,8 @@
           setCids(null);
           setHistoryData(null);
           setShowResults(false);
+          setCidInput('');
+          setInputMode('upload');
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
           }
@@ -578,7 +582,38 @@
           console.log('API key saved, isLoggedIn set to true'); // Debug log
         };
 
-        const formatTimeAgo = (timestamp) => {
+        // Handle CID input submission
+        const handleCidSubmit = () => {
+          if (!cidInput.trim()) {
+            setError('Please enter a valid CID');
+            return;
+          }
+
+          // Validate CID format (basic check)
+          const cid = cidInput.trim();
+          if (!cid.startsWith('Qm') && !cid.startsWith('bafybei') && !cid.startsWith('bafkrei')) {
+            setError('Please enter a valid CID (should start with Qm, bafybei, or bafkrei)');
+            return;
+          }
+
+          // Create mock file object for CID
+          const mockFile = {
+            name: `CID-${cid.slice(0, 8)}...`,
+            size: 0,
+            type: 'application/octet-stream'
+          };
+
+          setFile(mockFile);
+          
+          // Set the CIDs based on input
+          const cidData = {
+            v0: cid.startsWith('Qm') ? cid : `Qm${cid.slice(7)}`, // Convert to v0 format
+            v1: cid.startsWith('bafybei') || cid.startsWith('bafkrei') ? cid : `bafybei${cid.slice(2)}`  // Convert to v1 format
+          };
+          
+          setCids(cidData);
+          lookupHistory(cidData);
+        };
           const now = new Date();
           const past = new Date(timestamp);
           const diffMs = now - past;
@@ -594,8 +629,28 @@
 
         // Sign In Modal Component
         const SignInModal = () => (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className={`max-w-md w-full rounded-lg p-6 ${darkMode ? 'bg-zinc-900' : 'bg-white'}`}>
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={(e) => {
+              // Close modal if clicking on backdrop
+              if (e.target === e.currentTarget) {
+                setShowSignInModal(false);
+                setApiKeyInput('');
+              }
+            }}
+          >
+            <div className={`max-w-md w-full rounded-lg p-6 relative ${darkMode ? 'bg-zinc-900' : 'bg-white'}`}>
+              {/* X button to close */}
+              <button
+                onClick={() => {
+                  setShowSignInModal(false);
+                  setApiKeyInput('');
+                }}
+                className={`absolute top-4 right-4 p-1 rounded transition-colors ${darkMode ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'}`}
+              >
+                <Icons.X className="w-4 h-4" />
+              </button>
+
               <h2 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-black'}`}>
                 Connect to Pinata
               </h2>
@@ -613,29 +668,49 @@
                   onChange={(e) => setApiKeyInput(e.target.value)}
                   placeholder="Enter your Pinata API key"
                   className={`w-full p-3 rounded border font-mono text-sm ${darkMode ? 'bg-black border-zinc-700 text-white' : 'bg-white border-zinc-300 text-black'}`}
+                  onKeyDown={(e) => {
+                    // Close modal on Escape key
+                    if (e.key === 'Escape') {
+                      setShowSignInModal(false);
+                      setApiKeyInput('');
+                    }
+                  }}
                 />
               </div>
               
               <div className="flex gap-2">
                 <button
-                  onClick={saveApiKey}
+                  onClick={() => {
+                    saveApiKey();
+                    setShowSignInModal(false);
+                  }}
                   className={`flex-1 px-4 py-2 rounded font-medium ${darkMode ? 'bg-white text-black hover:bg-zinc-200' : 'bg-black text-white hover:bg-zinc-800'}`}
                 >
                   Save API Key
                 </button>
                 <button
                   onClick={() => {
-                    setIsLoggedIn(false);
+                    setShowSignInModal(false);
                     setApiKeyInput('');
                   }}
                   className={`px-4 py-2 border rounded font-medium ${darkMode ? 'border-zinc-700 hover:bg-zinc-800' : 'border-zinc-300 hover:bg-zinc-100'}`}
                 >
                   Cancel
                 </button>
+                <button
+                  onClick={() => {
+                    setShowSignInModal(false);
+                    setApiKeyInput('');
+                    setCopyMessage('You can upload files without Pinata - they will only generate CIDs locally.');
+                  }}
+                  className={`px-4 py-2 border rounded font-medium text-blue-600 border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900`}
+                >
+                  Skip
+                </button>
               </div>
               
               <p className={`text-xs mt-4 ${darkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                Your API key is stored locally in your browser and never shared.
+                Your API key is stored locally in your browser and never shared. You can also skip this step to use VERICID without IPFS uploading.
               </p>
             </div>
           </div>
@@ -667,7 +742,7 @@
             )}
 
             {/* Sign In Modal */}
-            {!isLoggedIn && pinataApiKey === '' && !showDashboard && !showSettings && <SignInModal />}
+            {showSignInModal && <SignInModal />}
 
             <header className={`border-b ${darkMode ? 'border-zinc-800' : 'border-zinc-200'}`}>
               <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -706,12 +781,8 @@
                   ) : (
                     <button
                       onClick={() => {
-                        console.log('Sign in button clicked, current isLoggedIn:', isLoggedIn); // Debug log
-                        if (pinataApiKey === '') {
-                          setIsLoggedIn(true);
-                        } else {
-                          setIsLoggedIn(true);
-                        }
+                        console.log('Sign in button clicked'); // Debug log
+                        setShowSignInModal(true);
                       }}
                       className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${darkMode ? 'bg-white text-black hover:bg-zinc-200' : 'bg-black text-white hover:bg-zinc-800'}`}
                     >
@@ -816,9 +887,9 @@
                       <div className={`w-12 h-12 rounded-full ${darkMode ? 'bg-zinc-900' : 'bg-zinc-100'} flex items-center justify-center mx-auto mb-4`}>
                         <span className="text-xl font-bold">1</span>
                       </div>
-                      <h3 className="font-bold mb-2">Upload File</h3>
+                      <h3 className="font-bold mb-2">Upload or Enter</h3>
                       <p className={`text-sm ${darkMode ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                        Drop any digital file to generate its unique CID hash
+                        Upload any digital file or enter an existing CID to verify
                       </p>
                     </div>
                     
@@ -844,40 +915,122 @@
                   </div>
                 </div>
 
-                {/* Upload Area */}
+                {/* Upload Area or CID Input */}
                 {!file && (
-                  <div
-                    className={`relative border-2 border-dashed rounded-lg p-16 text-center transition-all duration-300 cursor-pointer ${
-                      dragOver 
-                        ? (darkMode ? 'border-white bg-zinc-900' : 'border-black bg-zinc-50')
-                        : (darkMode ? 'border-zinc-700 hover:border-zinc-600' : 'border-zinc-300 hover:border-zinc-400')
-                    }`}
-                    onDrop={handleDrop}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      onChange={handleFileSelect}
-                      style={{ display: 'none' }}
-                    />
-                    
-                    <div className="flex flex-col items-center gap-6">
-                      <div className={`p-8 rounded ${darkMode ? 'bg-zinc-900' : 'bg-zinc-100'}`}>
-                        <Icons.Upload className="w-16 h-16" />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-bold mb-2">Drop your file here</h3>
-                        <p className={darkMode ? 'text-zinc-400' : 'text-zinc-600'}>
-                          or <span className="underline font-medium">click to browse</span>
-                        </p>
-                        <p className={`text-sm mt-2 ${darkMode ? 'text-zinc-500' : 'text-zinc-500'}`}>
-                          Any file type • Max 100MB
-                        </p>
+                  <div className="max-w-2xl mx-auto mb-8">
+                    {/* Mode Toggle */}
+                    <div className="flex justify-center mb-6">
+                      <div className={`flex rounded-lg p-1 ${darkMode ? 'bg-zinc-900' : 'bg-zinc-100'}`}>
+                        <button
+                          onClick={() => setInputMode('upload')}
+                          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            inputMode === 'upload'
+                              ? (darkMode ? 'bg-white text-black' : 'bg-black text-white')
+                              : (darkMode ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-black')
+                          }`}
+                        >
+                          Upload File
+                        </button>
+                        <button
+                          onClick={() => setInputMode('cid')}
+                          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            inputMode === 'cid'
+                              ? (darkMode ? 'bg-white text-black' : 'bg-black text-white')
+                              : (darkMode ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-black')
+                          }`}
+                        >
+                          Enter CID
+                        </button>
                       </div>
                     </div>
+
+                    {/* Upload Mode */}
+                    {inputMode === 'upload' && (
+                      <div
+                        className={`relative border-2 border-dashed rounded-lg p-16 text-center transition-all duration-300 cursor-pointer ${
+                          dragOver 
+                            ? (darkMode ? 'border-white bg-zinc-900' : 'border-black bg-zinc-50')
+                            : (darkMode ? 'border-zinc-700 hover:border-zinc-600' : 'border-zinc-300 hover:border-zinc-400')
+                        }`}
+                        onDrop={handleDrop}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          onChange={handleFileSelect}
+                          style={{ display: 'none' }}
+                        />
+                        
+                        <div className="flex flex-col items-center gap-6">
+                          <div className={`p-8 rounded ${darkMode ? 'bg-zinc-900' : 'bg-zinc-100'}`}>
+                            <Icons.Upload className="w-16 h-16" />
+                          </div>
+                          <div>
+                            <h3 className="text-2xl font-bold mb-2">Drop your file here</h3>
+                            <p className={darkMode ? 'text-zinc-400' : 'text-zinc-600'}>
+                              or <span className="underline font-medium">click to browse</span>
+                            </p>
+                            <p className={`text-sm mt-2 ${darkMode ? 'text-zinc-500' : 'text-zinc-500'}`}>
+                              Any file type • Max 100MB
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* CID Input Mode */}
+                    {inputMode === 'cid' && (
+                      <div className={`rounded-lg border-2 p-8 ${darkMode ? 'border-zinc-700 bg-zinc-950' : 'border-zinc-300 bg-zinc-50'}`}>
+                        <div className="text-center mb-6">
+                          <div className={`inline-flex p-4 rounded ${darkMode ? 'bg-zinc-900' : 'bg-zinc-100'} mb-4`}>
+                            <Icons.FileText className="w-8 h-8" />
+                          </div>
+                          <h3 className="text-2xl font-bold mb-2">Enter CID to Verify</h3>
+                          <p className={`${darkMode ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                            Paste a Content Identifier to track its history and verify authenticity
+                          </p>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div>
+                            <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-zinc-300' : 'text-zinc-700'}`}>
+                              Content Identifier (CID)
+                            </label>
+                            <input
+                              type="text"
+                              value={cidInput}
+                              onChange={(e) => setCidInput(e.target.value)}
+                              placeholder="Qm... or bafybei... or bafkrei..."
+                              className={`w-full p-4 rounded border font-mono text-sm ${darkMode ? 'bg-black border-zinc-700 text-white placeholder-zinc-500' : 'bg-white border-zinc-300 text-black placeholder-zinc-400'}`}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleCidSubmit();
+                                }
+                              }}
+                            />
+                          </div>
+                          
+                          <button
+                            onClick={handleCidSubmit}
+                            disabled={!cidInput.trim()}
+                            className={`w-full px-6 py-3 rounded font-medium transition-colors ${
+                              cidInput.trim()
+                                ? (darkMode ? 'bg-white text-black hover:bg-zinc-200' : 'bg-black text-white hover:bg-zinc-800')
+                                : (darkMode ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed')
+                            }`}
+                          >
+                            Verify CID
+                          </button>
+                          
+                          <p className={`text-xs text-center ${darkMode ? 'text-zinc-500' : 'text-zinc-500'}`}>
+                            Supports CIDv0 (Qm...) and CIDv1 (bafybei..., bafkrei...) formats
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
