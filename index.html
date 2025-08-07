@@ -564,6 +564,7 @@
 
         // Enhanced functions for new features
         const saveApiKey = () => {
+          console.log('Saving API key:', apiKeyInput); // Debug log
           if (!apiKeyInput.trim()) {
             setError('Please enter a valid API key');
             return;
@@ -574,6 +575,7 @@
           setIsLoggedIn(true);
           setApiKeyInput('');
           setCopyMessage('API key saved successfully!');
+          console.log('API key saved, isLoggedIn set to true'); // Debug log
         };
 
         const formatTimeAgo = (timestamp) => {
@@ -622,7 +624,10 @@
                   Save API Key
                 </button>
                 <button
-                  onClick={() => setIsLoggedIn(false)}
+                  onClick={() => {
+                    setIsLoggedIn(false);
+                    setApiKeyInput('');
+                  }}
                   className={`px-4 py-2 border rounded font-medium ${darkMode ? 'border-zinc-700 hover:bg-zinc-800' : 'border-zinc-300 hover:bg-zinc-100'}`}
                 >
                   Cancel
@@ -662,7 +667,7 @@
             )}
 
             {/* Sign In Modal */}
-            {!isLoggedIn && pinataApiKey === '' && <SignInModal />}
+            {!isLoggedIn && pinataApiKey === '' && !showDashboard && !showSettings && <SignInModal />}
 
             <header className={`border-b ${darkMode ? 'border-zinc-800' : 'border-zinc-200'}`}>
               <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -677,14 +682,22 @@
                   {isLoggedIn ? (
                     <>
                       <button
-                        onClick={() => setShowDashboard(!showDashboard)}
+                        onClick={() => {
+                          console.log('Dashboard button clicked, current showDashboard:', showDashboard); // Debug log
+                          setShowDashboard(!showDashboard);
+                          setShowSettings(false);
+                        }}
                         className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${showDashboard ? (darkMode ? 'bg-zinc-800 text-white' : 'bg-zinc-200 text-black') : (darkMode ? 'hover:bg-zinc-900' : 'hover:bg-zinc-100')}`}
                       >
                         <Icons.Dashboard className="w-4 h-4" />
-                        Dashboard
+                        Dashboard {showDashboard && '(Active)'}
                       </button>
                       <button 
-                        onClick={() => setShowSettings(!showSettings)}
+                        onClick={() => {
+                          console.log('Settings button clicked, current showSettings:', showSettings); // Debug log
+                          setShowSettings(!showSettings);
+                          setShowDashboard(false);
+                        }}
                         className={`p-2 rounded transition-colors ${showSettings ? (darkMode ? 'bg-zinc-800' : 'bg-zinc-200') : (darkMode ? 'hover:bg-zinc-900' : 'hover:bg-zinc-100')}`}
                       >
                         <Icons.Settings className="w-5 h-5" />
@@ -692,7 +705,14 @@
                     </>
                   ) : (
                     <button
-                      onClick={() => setIsLoggedIn(true)}
+                      onClick={() => {
+                        console.log('Sign in button clicked, current isLoggedIn:', isLoggedIn); // Debug log
+                        if (pinataApiKey === '') {
+                          setIsLoggedIn(true);
+                        } else {
+                          setIsLoggedIn(true);
+                        }
+                      }}
                       className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${darkMode ? 'bg-white text-black hover:bg-zinc-200' : 'bg-black text-white hover:bg-zinc-800'}`}
                     >
                       <Icons.Key className="w-4 h-4" />
@@ -716,6 +736,14 @@
                 </button>
               </div>
             </header>
+
+            {/* Debug info - remove this later */}
+            <div className="fixed bottom-4 left-4 p-2 bg-red-500 text-white text-xs rounded z-50">
+              isLoggedIn: {isLoggedIn.toString()}<br/>
+              showDashboard: {showDashboard.toString()}<br/>
+              showSettings: {showSettings.toString()}<br/>
+              pinataApiKey: {pinataApiKey ? 'SET' : 'EMPTY'}
+            </div>
 
             {/* Dashboard */}
             {showDashboard && isLoggedIn && (
