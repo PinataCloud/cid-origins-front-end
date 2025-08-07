@@ -1,4 +1,4 @@
-// Enhanced VericidApp with origin card rendering
+// Enhanced VericidApp with origin card rendering and view switching
 
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { Upload, FileText, Shield, History, Copy, Download, Moon, Sun, AlertTriangle, CheckCircle, XCircle, Clock, MapPin, User, Save, LogIn, Settings, BarChart3, Menu, X, ExternalLink, Trash2 } from 'lucide-react';
@@ -8,6 +8,7 @@ import errorImage from './assets/image.png';
 const VericidApp = () => {
   const [darkMode, setDarkMode] = useState(true);
   const [view, setView] = useState('dashboard');
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('pinataApiKey'));
   const [stats, setStats] = useState({ count: 3, types: { image: 1, application: 1, text: 1 } });
   const [filterType, setFilterType] = useState('all');
   const [sortOrder, setSortOrder] = useState('newest');
@@ -57,6 +58,14 @@ const VericidApp = () => {
         <div className="flex gap-2 items-center">
           <button onClick={() => setDarkMode(!darkMode)}>{darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}</button>
           <button onClick={() => setView('dashboard')}><BarChart3 className="w-5 h-5" /></button>
+          <button onClick={() => setView('settings')}><Settings className="w-5 h-5" /></button>
+          {!isLoggedIn ? (
+            <button onClick={() => setView('signin')} className="flex items-center gap-1 border px-3 py-1 rounded text-sm hover:bg-zinc-800">
+              <LogIn className="w-4 h-4" /> Sign In
+            </button>
+          ) : (
+            <span className="text-xs text-green-400">Logged in</span>
+          )}
         </div>
       </header>
 
@@ -134,8 +143,34 @@ const VericidApp = () => {
           )}
         </div>
       )}
+
+      {view === 'settings' && (
+        <div className="max-w-3xl mx-auto mt-10 px-6">
+          <h2 className="text-2xl font-bold mb-4">Settings</h2>
+          <p className="text-zinc-400">Settings functionality coming soon!</p>
+        </div>
+      )}
+
+      {view === 'signin' && (
+        <div className="max-w-3xl mx-auto mt-10 px-6">
+          <h2 className="text-2xl font-bold mb-4">Sign In</h2>
+          <p className="text-zinc-400 mb-4">Sign in with your Pinata API Key.</p>
+          <input
+            type="text"
+            placeholder="Enter Pinata API Key"
+            className="w-full px-3 py-2 rounded text-black mb-4"
+            onChange={(e) => {
+              localStorage.setItem('pinataApiKey', e.target.value);
+              setIsLoggedIn(true);
+              alert("API key saved. You're signed in!");
+              setView('dashboard');
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 };
 
 export default VericidApp;
+
