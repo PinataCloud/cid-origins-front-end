@@ -1,0 +1,28 @@
+name = "vericid-worker"
+main = "cloudflare-worker.js"
+compatibility_date = "2024-08-07"
+compatibility_flags = ["nodejs_compat"]
+
+# Environment variables (set these in Cloudflare dashboard)
+[vars]
+ENVIRONMENT = "production"
+
+# Secrets (set via: wrangler secret put SECRET_NAME)
+# ALCHEMY_API_KEY = "your-alchemy-key"
+# MORALIS_API_KEY = "your-moralis-key"
+# PINATA_API_KEY = "your-pinata-key"
+
+# Custom domains (optional)
+[[routes]]
+pattern = "api.vericid.com/*"
+zone_name = "vericid.com"
+
+# Rate limiting
+[limits]
+cpu_ms = 50
+
+# KV Storage for caching (optional)
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "your-kv-namespace-id"
+# preview_id = "your-preview-kv-namespace-id"
