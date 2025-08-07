@@ -598,6 +598,16 @@
           }
         };
 
+        const goToHomepage = () => {
+          // Reset all app state to homepage
+          reset();
+          setShowDashboard(false);
+          setShowSettings(false);
+          setShowMobileMenu(false);
+          setError(null);
+          setCopyMessage(null);
+        };
+
         // Enhanced functions for new features
         const saveApiKey = () => {
           if (!apiKeyInput.trim()) {
@@ -770,12 +780,15 @@
 
             <header className={`border-b ${darkMode ? 'border-zinc-800' : 'border-zinc-200'}`}>
               <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-                <div className="flex items-center gap-4">
+                <button 
+                  onClick={goToHomepage}
+                  className="flex items-center gap-4 hover:opacity-80 transition-opacity"
+                >
                   <div className={`p-2 rounded ${darkMode ? 'bg-zinc-900' : 'bg-zinc-100'}`}>
                     <Icons.Shield className="w-6 h-6" />
                   </div>
                   <h1 className="text-xl font-bold tracking-tight">VERICID</h1>
-                </div>
+                </button>
                 
                 <div className="hidden md:flex items-center gap-6">
                   {isLoggedIn ? (
