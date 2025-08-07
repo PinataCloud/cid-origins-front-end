@@ -288,6 +288,7 @@
         const [fileFilter, setFileFilter] = useState('all');
         const [sortOrder, setSortOrder] = useState('newest');
         const [error, setError] = useState(null);
+        const [copyMessage, setCopyMessage] = useState(null);
         const [showSignInModal, setShowSignInModal] = useState(false);
         const [inputMode, setInputMode] = useState('upload'); // 'upload' or 'cid'
         const [cidInput, setCidInput] = useState('');
@@ -363,8 +364,8 @@
             setCids(cidPair);
             setIsGenerating(false);
             
-            // Upload to Pinata if logged in
-            if (isLoggedIn && pinataApiKey) {
+            // Upload to Pinata if logged in and has real API key
+            if (isLoggedIn && pinataApiKey && pinataApiKey !== 'SKIPPED') {
               setIsUploading(true);
               try {
                 const pinataCid = await uploadToPinata(file, pinataApiKey);
@@ -701,6 +702,8 @@
                   onClick={() => {
                     setShowSignInModal(false);
                     setApiKeyInput('');
+                    setIsLoggedIn(true); // Set to logged in but without API key
+                    setPinataApiKey('SKIPPED'); // Use a special value to indicate skipped
                     setCopyMessage('You can upload files without Pinata - they will only generate CIDs locally.');
                   }}
                   className={`px-4 py-2 border rounded font-medium text-blue-600 border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900`}
@@ -754,7 +757,7 @@
                 </div>
                 
                 <div className="hidden md:flex items-center gap-6">
-                  {isLoggedIn ? (
+                  {isLoggedIn && pinataApiKey ? (
                     <>
                       <button
                         onClick={() => {
@@ -765,7 +768,7 @@
                         className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${showDashboard ? (darkMode ? 'bg-zinc-800 text-white' : 'bg-zinc-200 text-black') : (darkMode ? 'hover:bg-zinc-900' : 'hover:bg-zinc-100')}`}
                       >
                         <Icons.Dashboard className="w-4 h-4" />
-                        Dashboard {showDashboard && '(Active)'}
+                        Dashboard {showDashboard && '(Active)'} {pinataApiKey === 'SKIPPED' && '(Local Mode)'}
                       </button>
                       <button 
                         onClick={() => {
@@ -813,11 +816,13 @@
               isLoggedIn: {isLoggedIn.toString()}<br/>
               showDashboard: {showDashboard.toString()}<br/>
               showSettings: {showSettings.toString()}<br/>
+              showSignInModal: {showSignInModal.toString()}<br/>
+              inputMode: {inputMode}<br/>
               pinataApiKey: {pinataApiKey ? 'SET' : 'EMPTY'}
             </div>
 
             {/* Dashboard */}
-            {showDashboard && isLoggedIn && (
+            {showDashboard && isLoggedIn && pinataApiKey && (
               <div className="max-w-6xl mx-auto px-6 py-16 fade-in">
                 <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
                 <div className={`rounded-lg border p-6 ${darkMode ? 'bg-zinc-950 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
@@ -844,7 +849,7 @@
             )}
 
             {/* Settings */}
-            {showSettings && isLoggedIn && (
+            {showSettings && isLoggedIn && pinataApiKey && (
               <div className="max-w-6xl mx-auto px-6 py-16 fade-in">
                 <h2 className="text-2xl font-bold mb-6">Settings</h2>
                 <div className={`rounded-lg border p-6 ${darkMode ? 'bg-zinc-950 border-zinc-800' : 'bg-zinc-50 border-zinc-200'}`}>
@@ -922,7 +927,10 @@
                     <div className="flex justify-center mb-6">
                       <div className={`flex rounded-lg p-1 ${darkMode ? 'bg-zinc-900' : 'bg-zinc-100'}`}>
                         <button
-                          onClick={() => setInputMode('upload')}
+                          onClick={() => {
+                            console.log('Upload mode clicked, current inputMode:', inputMode);
+                            setInputMode('upload');
+                          }}
                           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                             inputMode === 'upload'
                               ? (darkMode ? 'bg-white text-black' : 'bg-black text-white')
@@ -932,7 +940,10 @@
                           Upload File
                         </button>
                         <button
-                          onClick={() => setInputMode('cid')}
+                          onClick={() => {
+                            console.log('CID mode clicked, current inputMode:', inputMode);
+                            setInputMode('cid');
+                          }}
                           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                             inputMode === 'cid'
                               ? (darkMode ? 'bg-white text-black' : 'bg-black text-white')
