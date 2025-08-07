@@ -27,8 +27,22 @@
     <link rel="preconnect" href="https://etherscan.io">
     <link rel="preconnect" href="https://basescan.org">
     
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS CDN - Suppress development warnings -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Suppress console warnings for development tools
+      const originalConsoleWarn = console.warn;
+      console.warn = function(...args) {
+        const message = args[0];
+        if (message && message.includes && (
+          message.includes('cdn.tailwindcss.com should not be used in production') ||
+          message.includes('You are using the in-browser Babel transformer')
+        )) {
+          return;
+        }
+        originalConsoleWarn.apply(console, args);
+      };
+    </script>
     
     <!-- React and ReactDOM - Production versions -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
