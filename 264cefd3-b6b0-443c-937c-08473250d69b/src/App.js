@@ -586,4 +586,82 @@ const VericidApp = () => {
                           <p className={`text-sm ${darkMode ? 'text-zinc-300' : 'text-zinc-700'} mb-2`}>
                             Standard: {origin.metadata?.standard} • Address: {origin.address.slice(0, 8)}...{origin.address.slice(-6)}
                           </p>
-                          {origin.external
+                          {origin.externalLink && (
+                            <a
+                              href={origin.externalLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-500 hover:text-blue-600 text-xs font-mono flex items-center gap-1 mt-1"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              View on {origin.network.charAt(0).toUpperCase() + origin.network.slice(1)} Explorer →
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className={`flex gap-3 pt-6 border-t ${darkMode ? 'border-zinc-800' : 'border-zinc-200'}`}>
+                  <button
+                    onClick={() => {/* TODO: Save to profile */}}
+                    className={`flex items-center gap-2 px-4 py-2 rounded transition-colors font-medium ${darkMode ? 'bg-white text-black hover:bg-zinc-200' : 'bg-black text-white hover:bg-zinc-800'}`}
+                  >
+                    <Save className="w-4 h-4" />
+                    Save Result
+                  </button>
+                  <button
+                    onClick={exportResults}
+                    className={`flex items-center gap-2 px-4 py-2 border rounded transition-colors font-medium ${darkMode ? 'border-zinc-700 hover:bg-zinc-900' : 'border-zinc-300 hover:bg-zinc-100'}`}
+                  >
+                    <Download className="w-4 h-4" />
+                    Export (Reference Only)
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Features */}
+        {!file && (
+          <div className="grid md:grid-cols-3 gap-8 mt-16">
+            <div className={`p-8 rounded border ${darkMode ? 'bg-zinc-950 border-zinc-800' : 'bg-zinc-50 border-zinc-200'} text-center`}>
+              <div className={`w-16 h-16 rounded ${darkMode ? 'bg-zinc-900' : 'bg-zinc-200'} flex items-center justify-center mx-auto mb-6`}>
+                <Shield className="w-8 h-8" />
+              </div>
+              <h3 className="font-bold mb-4 text-lg">Verify Authenticity</h3>
+              <p className={`${darkMode ? 'text-zinc-400' : 'text-zinc-600'} leading-relaxed`}>
+                Generate cryptographic hashes to verify the authenticity and integrity of any digital file using IPFS content addressing.
+              </p>
+            </div>
+            
+            <div className={`p-8 rounded border ${darkMode ? 'bg-zinc-950 border-zinc-800' : 'bg-zinc-50 border-zinc-200'} text-center`}>
+              <div className={`w-16 h-16 rounded ${darkMode ? 'bg-zinc-900' : 'bg-zinc-200'} flex items-center justify-center mx-auto mb-6`}>
+                <History className="w-8 h-8" />
+              </div>
+              <h3 className="font-bold mb-4 text-lg">Track History</h3>
+              <p className={`${darkMode ? 'text-zinc-400' : 'text-zinc-600'} leading-relaxed`}>
+                See everywhere your file has appeared across networks, blockchains, and platforms with detailed provenance tracking.
+              </p>
+            </div>
+            
+            <div className={`p-8 rounded border ${darkMode ? 'bg-zinc-950 border-zinc-800' : 'bg-zinc-50 border-zinc-200'} text-center`}>
+              <div className={`w-16 h-16 rounded ${darkMode ? 'bg-zinc-900' : 'bg-zinc-200'} flex items-center justify-center mx-auto mb-6`}>
+                <User className="w-8 h-8" />
+              </div>
+              <h3 className="font-bold mb-4 text-lg">Easy to Use</h3>
+              <p className={`${darkMode ? 'text-zinc-400' : 'text-zinc-600'} leading-relaxed`}>
+                No technical knowledge required. Enterprise-grade verification made simple for everyone.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default VericidApp;
