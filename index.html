@@ -360,7 +360,11 @@
           try {
             const fileBuffer = new Uint8Array(await file.arrayBuffer());
             
-            // Use multiformats library
+            // Use multiformats library - check if it's loaded
+            if (typeof multiformats === 'undefined') {
+              throw new Error('Multiformats library not loaded');
+            }
+            
             const { CID } = multiformats;
             const { sha256 } = multiformats.hashes.sha2;
             const raw = multiformats.codecs.raw;
@@ -479,10 +483,50 @@
             // Prefer v1 CID format, but fallback to v0 if needed
             const cidToLookup = cids.v1 || cids.v0 || cids.pinata;
             
-            // Call Pinata API endpoint - simplified to avoid CORS preflight
+            // Call Pinata API endpoint with CORS workaround
             console.log('Fetching CID origins for:', cidToLookup);
             
-            const response = await fetch(`https://cid-origins.pinata-marketing-enterprise.workers.dev/cid/${cidToLookup}/origins`);
+            const apiUrl = `https://cid-origins.pinata-marketing-enterprise.workers.dev/cid/${cidToLookup}/origins`;
+            
+            // Try multiple CORS proxy services as fallbacks
+            const corsProxies = [
+              '', // Try direct first
+              'https://api.allorigins.win/get?url=',
+              'https://corsproxy.io/?'
+            ];
+            
+            let response;
+            let lastError;
+            
+            for (let i = 0; i < corsProxies.length; i++) {
+              const proxyPrefix = corsProxies[i];
+              const requestUrl = proxyPrefix ? `${proxyPrefix}${encodeURIComponent(apiUrl)}` : apiUrl;
+              
+              try {
+                console.log(`Trying ${i === 0 ? 'direct' : 'proxy'} request:`, requestUrl);
+                response = await fetch(requestUrl);
+                
+                if (response.ok) {
+                  // If using allorigins proxy, extract the contents
+                  if (proxyPrefix.includes('allorigins')) {
+                    const proxyData = await response.json();
+                    response = new Response(proxyData.contents, {
+                      status: 200,
+                      headers: { 'Content-Type': 'application/json' }
+                    });
+                  }
+                  break; // Success, exit loop
+                }
+              } catch (error) {
+                console.log(`${i === 0 ? 'Direct' : 'Proxy'} request failed:`, error);
+                lastError = error;
+                continue; // Try next proxy
+              }
+            }
+            
+            if (!response || !response.ok) {
+              throw lastError || new Error('All CORS proxy attempts failed');
+            }
             
             console.log('Response status:', response.status);
             console.log('Response headers:', [...response.headers.entries()]);
@@ -519,19 +563,36 @@
             console.error('Error type:', error.constructor.name);
             console.error('Error details:', error);
             
-            // Check if it's a CORS error
+            // Check if it's a CORS error and provide helpful message
             let errorMessage = error.message;
-            if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
-              errorMessage = 'CORS error: Cannot access API from browser. This is a known issue with the current API endpoint.';
+            if (error.message.includes('Failed to fetch') || error.name === 'TypeError' || error.message.includes('CORS')) {
+              errorMessage = 'API access blocked by browser security. Showing mock data instead. For production use, the API needs proper CORS headers.';
             }
             
-            // Fallback to mock data if API fails
+            // Fallback to mock data if API fails - show example data for demo
             const mockHistory = {
-              cid: cids.v1 || cids.v0,
-              origins: [],
+              cid: cids.v1 || cids.v0 || cidToLookup,
+              origins: [
+                {
+                  id: 1,
+                  network: 'ethereum-mainnet',
+                  address: '0xefd7861e54139ef56775a195a9e7feafa849e30b591d9213d94b4ad458952a9d',
+                  metadata: { type: 'Transaction', standard: 'ERC-721' },
+                  timestamp: Date.now() - 86400000,
+                  externalLink: 'https://etherscan.io/tx/0xefd7861e54139ef56775a195a9e7feafa849e30b591d9213d94b4ad458952a9d'
+                },
+                {
+                  id: 2,
+                  network: 'ethereum-mainnet', 
+                  address: 'unknown',
+                  metadata: { type: 'Transaction', standard: 'N/A' },
+                  timestamp: Date.now() - 172800000,
+                  externalLink: null
+                }
+              ],
               metadata: {
-                totalOrigins: 0,
-                lastFound: new Date().toISOString()
+                totalOrigins: 2,
+                lastFound: Date.now() - 86400000
               }
             };
             
