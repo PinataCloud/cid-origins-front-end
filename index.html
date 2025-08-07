@@ -563,42 +563,13 @@
             console.error('Error type:', error.constructor.name);
             console.error('Error details:', error);
             
-            // Check if it's a CORS error and provide helpful message
+            // Provide clear error message for failed API calls
             let errorMessage = error.message;
             if (error.message.includes('Failed to fetch') || error.name === 'TypeError' || error.message.includes('CORS')) {
-              errorMessage = 'API access blocked by browser security. Showing mock data instead. For production use, the API needs proper CORS headers.';
+              errorMessage = 'Unable to connect to origin tracking service. This may be due to network issues or server unavailability.';
             }
             
-            // Fallback to mock data if API fails - show example data for demo
-            const mockHistory = {
-              cid: cids.v1 || cids.v0 || cidToLookup,
-              origins: [
-                {
-                  id: 1,
-                  network: 'ethereum-mainnet',
-                  address: '0xefd7861e54139ef56775a195a9e7feafa849e30b591d9213d94b4ad458952a9d',
-                  metadata: { type: 'Transaction', standard: 'ERC-721' },
-                  timestamp: Date.now() - 86400000,
-                  externalLink: 'https://etherscan.io/tx/0xefd7861e54139ef56775a195a9e7feafa849e30b591d9213d94b4ad458952a9d'
-                },
-                {
-                  id: 2,
-                  network: 'ethereum-mainnet', 
-                  address: 'unknown',
-                  metadata: { type: 'Transaction', standard: 'N/A' },
-                  timestamp: Date.now() - 172800000,
-                  externalLink: null
-                }
-              ],
-              metadata: {
-                totalOrigins: 2,
-                lastFound: Date.now() - 86400000
-              }
-            };
-            
-            setHistoryData(mockHistory);
             setIsLookingUp(false);
-            setShowResults(true);
             setError(`Unable to fetch origin data: ${errorMessage}`);
           }
         };
@@ -1263,7 +1234,11 @@
                             </h4>
                           </div>
                           <p className={`text-sm ${darkMode ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                            Found {historyData.metadata?.totalOrigins || 0} occurrence{(historyData.metadata?.totalOrigins || 0) !== 1 ? 's' : ''} across blockchain networks
+                            {(historyData.metadata?.totalOrigins || 0) === 0 ? (
+                              'No occurrences found across blockchain networks'
+                            ) : (
+                              `Found ${historyData.metadata?.totalOrigins || 0} occurrence${(historyData.metadata?.totalOrigins || 0) !== 1 ? 's' : ''} across blockchain networks`
+                            )}
                           </p>
                         </div>
 
@@ -1274,7 +1249,8 @@
                             Network History
                           </h4>
                           <div className="space-y-4">
-                            {historyData.origins?.map((origin, index) => (
+                            {historyData.origins && historyData.origins.length > 0 ? (
+                              historyData.origins.map((origin, index) => (
                               <div key={index} className={`flex gap-4 p-4 rounded border ${darkMode ? 'bg-black border-zinc-800' : 'bg-white border-zinc-200'}`}>
                                 <div className={`p-2 rounded ${darkMode ? 'bg-zinc-900' : 'bg-zinc-100'}`}>
                                   <Icons.Clock className="w-4 h-4" />
@@ -1314,7 +1290,18 @@
                                   )}
                                 </div>
                               </div>
-                            ))}
+                              ))
+                            ) : (
+                              <div className={`p-8 text-center rounded border ${darkMode ? 'bg-black border-zinc-800' : 'bg-white border-zinc-200'}`}>
+                                <div className={`w-16 h-16 rounded-full ${darkMode ? 'bg-zinc-900' : 'bg-zinc-100'} flex items-center justify-center mx-auto mb-4`}>
+                                  <Icons.AlertTriangle className="w-8 h-8" />
+                                </div>
+                                <h3 className="font-bold mb-2">No Network History Found</h3>
+                                <p className={`${darkMode ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                                  This CID has not been detected on any tracked blockchain networks or platforms.
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </div>
 
