@@ -30,9 +30,9 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React and ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- React and ReactDOM - Production versions -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
     <!-- Babel for JSX transformation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -291,8 +291,24 @@
         const [showSignInModal, setShowSignInModal] = useState(false);
         const [inputMode, setInputMode] = useState('upload'); // 'upload' or 'cid'
         const [cidInput, setCidInput] = useState('');
+        const [copyMessage, setCopyMessage] = useState(null); // Added missing state
         
         const fileInputRef = useRef(null);
+
+        // Utility function to format time ago
+        const formatTimeAgo = (timestamp) => {
+          const now = new Date();
+          const past = new Date(timestamp);
+          const diffMs = now - past;
+          const diffMins = Math.floor(diffMs / 60000);
+          const diffHours = Math.floor(diffMs / 3600000);
+          const diffDays = Math.floor(diffMs / 86400000);
+
+          if (diffMins < 1) return 'Just now';
+          if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+          if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+          return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+        };
 
         // Load saved data on component mount
         useEffect(() => {
@@ -301,7 +317,6 @@
             setPinataApiKey(savedApiKey);
             setIsLoggedIn(true);
           }
-          // Don't automatically show modal - let user decide
 
           const savedFiles = localStorage.getItem('uploaded_files');
           if (savedFiles) {
@@ -359,7 +374,7 @@
             const cidPair = {
               v0: cidV0.toString(),
               v1: cidV1.toString()
-            const formatTimeAgo = (timestamp) => {
+            }; // Fixed syntax error - added closing brace
             
             setCids(cidPair);
             setIsGenerating(false);
@@ -514,8 +529,8 @@
           }
         };
 
-        const copyCID = (version) => {
-          const cidToCopy = version === 'v0' ? cids.v0 : cids.v1;
+        const copyCID = (version, customCid = null) => {
+          const cidToCopy = customCid || (version === 'v0' ? cids.v0 : cids.v1);
           navigator.clipboard.writeText(cidToCopy).then(() => {
             setCopyMessage('CID copied to clipboard!');
           }).catch(() => {
@@ -569,7 +584,6 @@
 
         // Enhanced functions for new features
         const saveApiKey = () => {
-          console.log('Saving API key:', apiKeyInput); // Debug log
           if (!apiKeyInput.trim()) {
             setError('Please enter a valid API key');
             return;
@@ -580,12 +594,10 @@
           setIsLoggedIn(true);
           setApiKeyInput('');
           setCopyMessage('API key saved successfully!');
-          console.log('API key saved, isLoggedIn set to true'); // Debug log
         };
 
         // Handle CID input submission
         const handleCidSubmit = () => {
-          console.log('CID submit clicked, cidInput:', cidInput);
           if (!cidInput.trim()) {
             setError('Please enter a valid CID');
             return;
@@ -597,8 +609,6 @@
             setError('Please enter a valid CID (should start with Qm, bafybei, or bafkrei)');
             return;
           }
-
-          console.log('Valid CID detected, processing:', cid);
 
           // Create mock file object for CID
           const mockFile = {
@@ -615,21 +625,8 @@
             v1: cid.startsWith('bafybei') || cid.startsWith('bafkrei') ? cid : `bafybei${cid.slice(2)}`  // Convert to v1 format
           };
           
-          console.log('Setting CID data:', cidData);
           setCids(cidData);
           lookupHistory(cidData);
-        };
-          const now = new Date();
-          const past = new Date(timestamp);
-          const diffMs = now - past;
-          const diffMins = Math.floor(diffMs / 60000);
-          const diffHours = Math.floor(diffMs / 3600000);
-          const diffDays = Math.floor(diffMs / 86400000);
-
-          if (diffMins < 1) return 'Just now';
-          if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
-          if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-          return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
         };
 
         // Sign In Modal Component
@@ -704,10 +701,9 @@
                 </button>
                 <button
                   onClick={() => {
-                    console.log('Skip button clicked');
                     setShowSignInModal(false);
                     setApiKeyInput('');
-                    setIsLoggedIn(false); // Make sure we're not logged in
+                    setIsLoggedIn(false);
                     setCopyMessage('You can use VERICID without Pinata - files will generate CIDs locally.');
                   }}
                   className={`px-4 py-2 border rounded font-medium text-blue-600 border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900`}
@@ -765,18 +761,16 @@
                     <>
                       <button
                         onClick={() => {
-                          console.log('Dashboard button clicked, current showDashboard:', showDashboard); // Debug log
                           setShowDashboard(!showDashboard);
                           setShowSettings(false);
                         }}
                         className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${showDashboard ? (darkMode ? 'bg-zinc-800 text-white' : 'bg-zinc-200 text-black') : (darkMode ? 'hover:bg-zinc-900' : 'hover:bg-zinc-100')}`}
                       >
                         <Icons.Dashboard className="w-4 h-4" />
-                        Dashboard {showDashboard && '(Active)'}
+                        Dashboard
                       </button>
                       <button 
                         onClick={() => {
-                          console.log('Settings button clicked, current showSettings:', showSettings); // Debug log
                           setShowSettings(!showSettings);
                           setShowDashboard(false);
                         }}
@@ -788,7 +782,6 @@
                   ) : (
                     <button
                       onClick={() => {
-                        console.log('Sign in button clicked'); // Debug log
                         setShowSignInModal(true);
                       }}
                       className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${darkMode ? 'bg-white text-black hover:bg-zinc-200' : 'bg-black text-white hover:bg-zinc-800'}`}
@@ -814,16 +807,6 @@
                 </button>
               </div>
             </header>
-
-            {/* Debug info - remove this later */}
-            <div className="fixed bottom-4 left-4 p-2 bg-red-500 text-white text-xs rounded z-50">
-              isLoggedIn: {isLoggedIn.toString()}<br/>
-              showDashboard: {showDashboard.toString()}<br/>
-              showSettings: {showSettings.toString()}<br/>
-              pinataApiKey: {pinataApiKey ? 'SET' : 'EMPTY'}<br/>
-              showSignInModal: {showSignInModal.toString()}<br/>
-              inputMode: {inputMode}
-            </div>
 
             {/* Dashboard */}
             {showDashboard && isLoggedIn && (
@@ -931,30 +914,24 @@
                     <div className="flex justify-center mb-6">
                       <div className={`flex rounded-lg p-1 ${darkMode ? 'bg-zinc-900' : 'bg-zinc-100'}`}>
                         <button
-                          onClick={() => {
-                            console.log('Upload mode clicked, current inputMode:', inputMode);
-                            setInputMode('upload');
-                          }}
+                          onClick={() => setInputMode('upload')}
                           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                             inputMode === 'upload'
                               ? (darkMode ? 'bg-white text-black' : 'bg-black text-white')
                               : (darkMode ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-black')
                           }`}
                         >
-                          Upload File {inputMode === 'upload' && '(Active)'}
+                          Upload File
                         </button>
                         <button
-                          onClick={() => {
-                            console.log('CID mode clicked, current inputMode:', inputMode);
-                            setInputMode('cid');
-                          }}
+                          onClick={() => setInputMode('cid')}
                           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                             inputMode === 'cid'
                               ? (darkMode ? 'bg-white text-black' : 'bg-black text-white')
                               : (darkMode ? 'text-zinc-400 hover:text-white' : 'text-zinc-600 hover:text-black')
                           }`}
                         >
-                          Enter CID {inputMode === 'cid' && '(Active)'}
+                          Enter CID
                         </button>
                       </div>
                     </div>
@@ -1017,15 +994,11 @@
                             <input
                               type="text"
                               value={cidInput}
-                              onChange={(e) => {
-                                console.log('CID input changed:', e.target.value);
-                                setCidInput(e.target.value);
-                              }}
+                              onChange={(e) => setCidInput(e.target.value)}
                               placeholder="Qm... or bafybei... or bafkrei..."
                               className={`w-full p-4 rounded border font-mono text-sm ${darkMode ? 'bg-black border-zinc-700 text-white placeholder-zinc-500' : 'bg-white border-zinc-300 text-black placeholder-zinc-400'}`}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
-                                  console.log('Enter key pressed in CID input');
                                   handleCidSubmit();
                                 }
                               }}
@@ -1033,10 +1006,7 @@
                           </div>
                           
                           <button
-                            onClick={() => {
-                              console.log('Verify CID button clicked');
-                              handleCidSubmit();
-                            }}
+                            onClick={handleCidSubmit}
                             disabled={!cidInput.trim()}
                             className={`w-full px-6 py-3 rounded font-medium transition-colors ${
                               cidInput.trim()
